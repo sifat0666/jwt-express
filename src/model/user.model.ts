@@ -10,6 +10,7 @@ export interface UserInput {
 
 
 export interface UserDocument extends UserInput, mongoose.Document{
+    _id: string,
     email: string,
     name: string,
     password: string,

@@ -1,21 +1,19 @@
 import { Request, Response } from "express";
-import { createSession, findSession } from "../service/session.service";
+import { createSession, findSession, updateSession } from "../service/session.service";
 import { validatePassword } from "../service/user.service";
-import { signJwt } from "../utils/jwt.utils";
+// import { signJwt } from "../utils/jwt.utils";
 import config from 'config'
 import { sign } from "jsonwebtoken";
 import user from './../utils/deserializedUser'
+import { signJwt } from "../utils/jwt.utils";
+
 
 export async function createUserSessionHandler(req: Request, res: Response){
 
     //validate the users password
     const user = await validatePassword(req.body)
 
-    // console.log(user._id)
 
-    // console.log(user)
-
-    // console.log('user', user)
 
     if(!user){
         return res.status(401).send('invalid email or password')
@@ -24,59 +22,76 @@ export async function createUserSessionHandler(req: Request, res: Response){
     //create a session
     const session = await createSession(user._id, req.get("user-agent") || "")
 
-    // console.log('session' , session)
-    // create an accesstoken
-    // const accessToken = signJwt(
-    //     {...user, session: session._id},
-    //     {expiresIn: config.get('accessTokenTtl')}
-    // )
+    console.log(session._id)
+//  console.log("tokenTtls" , config.get('refrestTokenTtl'))
     
+    const accessToken = sign(
+      {...user, session: session._id}, 
+      config.get('ats'), 
+      {expiresIn: config.get<string>('accessTokenTtl')}
+      )
 
-    // //crete a refesth token
-    // const refreshToken = signJwt(
-    //     {...user, session: session._id},
-    //     {expiresIn: config.get('refershTokenTtl')}
-    // )
 
-    // res.set('accessToken', accessToken)
-    
-    const accessToken = sign({userId: user._id}, config.get('ats'), {expiresIn: '15d'})
-    const refreshToken = sign ({userId: user._id }, config.get('rts'), {expiresIn: '1d'})
+    const refreshToken = sign (
+      {...user, session: session._id}, 
+      config.get('rts'), 
+      // {expiresIn: config.get<string>('refreshTokenTtl')}
+      {expiresIn: '1y'}
+      )
+  // const accessToken = signJwt(
+  //   { ...user, session: session._id },
+  //   config.get('rts'),
+  //   { expiresIn: config.get("accessTokenTtl") } // 15 minutes,
+  // );
 
+  // // create a refresh token
+  // const refreshToken = signJwt(
+  //   { ...user, session: session._id },
+  //   config.get('rts'),
+  //   { expiresIn: config.get("refreshTokenTtl") } // 15 minutes
+  // );
     res.cookie("accessToken", accessToken, {
-    maxAge: 300000, // 5 minu
+    maxAge: 1000*60*60,
     httpOnly: true,
   });
 
   res.cookie("refreshToken", refreshToken, {
-    maxAge: 3.154e10, // 1 year
+    maxAge: 1000*60*60*24*365,
     httpOnly: true,
   });
-// //   res.setHeader('Set-Cookie', accessToken)
 
-  // res.cookie("rt", refreshToken, {
-  //   httpOnly: true,
-  //   path: "/refresh_token"
-  // });
 
-  //   res.cookie("at", accessToken, {
-  //   httpOnly: true,
-  //   path: "/refresh_token"
-  // });
+
     //return access and refresh tokem
     return res.send({accessToken, refreshToken})
 
 }
 
 export async function getUserSessionHandler(req: Request, res: Response){
-    // console.log("local" ,res)
-    // deserializedUser()
-    const userId = user(req)
-    // console.log("user_id", userId)
+
+  
+    const userId = res.locals.user._id
+
 
     const sessions = await findSession({user: userId, valid: true})
 
-    // console.log({sessions})
+
    res.send(sessions)
     
 }
+
+
+export async function deleteSessionHandler(req: Request, res: Response) {
+  
+  const data = res.locals.user
+
+  // console.log('data ', data.session)
+
+  await updateSession({ _id: data.session }, { valid: false });
+
+  return res.send({
+    accessToken: null,
+    refreshToken: null,
+  });
+}
+

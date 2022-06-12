@@ -2,8 +2,8 @@ export default {
     port: 1337,
     dbUri: 'mongodb+srv://sifat:123@cluster0.rqx0d.mongodb.net/?retryWrites=true&w=majority',
     saltWorkFactor: 10,
-    accessTokenTtl: '15m',
-    refershTokenTtl:'1y',
+    accessTokenTtl: '5m',
+    refreshTokenTtl:'1y',
     public_key: `-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAyCNns/GKm32BlL1/yi+k
 1v7Ib4JYf154fgy3NOaslida8YbIafGAcW45vaAE2UB+LWcwSavSgFWBBX99u7Dd
